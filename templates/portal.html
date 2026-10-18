@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="control-token" content="{{ token }}">
+  <title>Autómatas · Laboratorio de herramientas</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body data-mode="{{ mode }}">
+  <header class="topbar">
+    <a class="brand" href="/monitor" aria-label="Monitor del laboratorio"><span class="brand-mark">a<span>→</span></span><span>AUTÓMATAS<span class="brand-sub">LABORATORIO DE HERRAMIENTAS</span></span></a>
+    <nav aria-label="Navegación principal">
+      {% if mode == 'control' %}<a class="active" href="/control">Control</a><a href="/monitor" target="_blank" rel="noopener">Monitor ↗</a>{% else %}<span class="read-only">◉ Solo lectura</span><button id="focus-diagrams" aria-pressed="false">Ampliar diagramas</button>{% endif %}
+      <span id="connection" class="connection pending" role="status">Conectando</span>
+    </nav>
+  </header>
+  <main>
+    <section class="page-heading">
+      <div><p class="eyebrow">TEORÍA DE LA COMPUTACIÓN / PROTOTIPO 01</p><h1>{{ 'Centro de control' if mode == 'control' else 'Los autómatas, en vivo' }}</h1><p class="subtitle">{{ 'Un compartimiento. Dos autómatas. Cada cambio tiene una causa.' if mode == 'control' else 'Sigue el estado de la herramienta y la operación, evento por evento.' }}</p></div>
+      <div class="simulation-badge"><span class="badge-dot"></span><div>Puerta y sensores simulados<small>Cámara y reconocimiento reales</small></div></div>
+    </section>
+    <div id="offline-banner" class="notice danger" hidden>Sin conexión con el computador. La información visible está desactualizada; no se enviarán acciones.</div>
+    <section class="metrics" aria-label="Estado del sistema">
+      <article class="metric"><span class="metric-label">01 / HERRAMIENTA</span><strong id="inventory-state">—</strong><span>Martillo · compartimiento 01</span></article>
+      <article class="metric"><span class="metric-label">02 / OPERACIÓN</span><strong id="operation-state">—</strong><span id="operation-mode">Sin operación activa</span></article>
+      <article class="metric"><span class="metric-label">03 / VISIÓN ARTIFICIAL</span><strong id="recognition-state">Sin evidencia</strong><span id="recognition-detail">Esperando cámara real</span></article>
+      <article class="metric"><span class="metric-label">04 / REGISTRO</span><strong id="event-count">0 <small>eventos</small></strong><span id="last-sync">Esperando sincronización</span></article>
+    </section>
+    <div class="system-message"><span class="message-icon">i</span><p id="system-message" aria-live="polite">Cargando el estado del sistema…</p></div>
+
+    {% if mode == 'control' %}
+    <section class="workbench" aria-label="Operación y simulador">
+      <article class="panel operation-panel">
+        <div class="panel-heading"><div><p class="eyebrow">OPERADOR</p><h2>Préstamo y devolución</h2></div><span class="number-tag">01</span></div>
+        <label for="user-code">Código de usuario</label><div class="user-row"><input id="user-code" value="1001" maxlength="32" autocomplete="off" list="user-codes"><span id="user-name">Estudiante 1</span></div>
+        <datalist id="user-codes"><option value="1001">Estudiante 1</option><option value="1002">Estudiante 2</option><option value="ADMIN">Encargado</option></datalist>
+        <p class="field-hint">Códigos de demostración: 1001, 1002 y ADMIN para revisión.</p>
+        <div class="actions main-actions"><button data-action="solicitar" class="primary">Solicitar martillo <span>↗</span></button><button data-action="devolver">Iniciar devolución <span>↙</span></button></div>
+        <div class="actions secondary-actions"><button data-action="cerrar">Cerrar y verificar</button><button data-action="cancelar">Cancelar reserva</button><button data-action="reintentar">Reintentar</button><button data-action="finalizar" class="primary">Finalizar operación</button></div>
+        <div id="loan-info" class="loan-info">Sin préstamo activo.</div>
+        <details><summary>Revisión del encargado</summary><p class="field-hint">Usa ADMIN. El daño se determina mediante revisión humana.</p><div class="actions"><button data-action="aprobar">Aprobar</button><button data-action="danada">Registrar daño</button><button data-action="reparada">Registrar reparación</button></div></details>
+      </article>
+      <article class="panel simulator-panel">
+        <div class="panel-heading"><div><p class="eyebrow">ADAPTADOR SIMULADO</p><h2>Compartimiento virtual</h2></div><span class="pill">Sin electrónica</span></div>
+        <div class="locker-area"><div class="locker" id="locker"><div class="locker-top"><span>CAJA 01</span><span class="led" id="locker-led" aria-label="LED apagado"></span></div><div class="locker-interior"><svg viewBox="0 0 160 130" role="img" aria-label="Representación esquemática del martillo, determinada por el sensor simulado"><path d="M48 24h62v27H83v65H66V51H48z" fill="currentColor"/><path d="M110 24l21 10v17l-21-5z" fill="currentColor"/></svg><span id="locker-presence-label">Sensor: vacío</span></div><div class="locker-door"><span>01</span><i></i></div></div><div class="locker-key"><strong id="door-status">Puerta cerrada</strong><span id="led-status">LED apagado</span><small>Ilustración del sensor.<br>No es una detección visual.</small></div></div>
+        <div class="actions"><button data-action="puerta_abierta">Confirmar puerta abierta</button><button data-action="puerta_cerrada">Confirmar puerta cerrada</button></div>
+        <div class="sensor-controls"><label class="switch-row"><span>Sensor de presencia<small>Indica si hay un objeto en el soporte</small></span><input id="presence" type="checkbox" role="switch"></label><label class="switch-row"><span>Sensor conectado<small>Desactívalo para ensayar un fallo</small></span><input id="sensor-connected" type="checkbox" role="switch" checked></label></div>
+      </article>
+    </section>
+    <section class="panel camera-panel" aria-label="Reconocimiento real y captura de imágenes">
+      <div class="panel-heading"><div><p class="eyebrow">VISIÓN ARTIFICIAL</p><h2>Una imagen, una comprobación</h2></div><span id="model-badge" class="pill warning">Modelo pendiente</span></div>
+      <div class="camera-grid"><div><div class="camera-frame"><img id="camera-image" alt="Imagen real de la cámara; el rectángulo verde delimita la zona observada" hidden><div id="camera-placeholder"><span class="camera-glyph">⌾</span><strong>Esperando la cámara</strong><p>Conecta Android mediante DroidCam.<br>El video no se inicia automáticamente.</p></div><span class="camera-frame-label">ENTRADA REAL · ROI</span></div><p id="camera-status" class="field-hint">Cámara sin iniciar.</p></div>
+        <div class="camera-settings"><label for="camera-source">Índice de cámara en Windows</label><select id="camera-source">{% for index in range(10) %}<option value="{{ index }}"{% if index == camera.source %} selected{% endif %}>Cámara {{ index }}</option>{% endfor %}</select><p class="field-hint">DroidCam puede ser 0, 1 u otro índice. Si aparece otra cámara, deténla y cambia el índice.</p>
+          <details><summary>Zona observada (ROI)</summary><p class="field-hint">Valores entre 0 y 1. Incluye toda la herramienta; el resto de la imagen no se clasifica.</p><div class="roi-inputs"><label>X<input id="roi-x" type="number" min="0" max="1" step=".05" value="{{ camera.roi[0] }}"></label><label>Y<input id="roi-y" type="number" min="0" max="1" step=".05" value="{{ camera.roi[1] }}"></label><label>Ancho<input id="roi-w" type="number" min=".05" max="1" step=".05" value="{{ camera.roi[2] }}"></label><label>Alto<input id="roi-h" type="number" min=".05" max="1" step=".05" value="{{ camera.roi[3] }}"></label></div></details>
+          <div class="actions"><button id="start-camera" class="primary">Iniciar cámara</button><button id="stop-camera">Detener</button></div>
+          <div id="model-help" class="notice"><strong>El modelo se entrena con tus herramientas.</strong><p>Sin modelo puedes capturar imágenes. El sistema no autoriza préstamos hasta recibir reconocimiento real.</p><p>Instalación: <code>.\instalar_vision.ps1</code><br>Guía: <code>docs/RECONOCIMIENTO.md</code></p></div>
+        </div></div>
+      <details class="dataset-section"><summary>Preparar las imágenes de entrenamiento</summary><p>Coloca un solo objeto en la zona marcada. Cambia ligeramente posición e iluminación entre capturas. Usa sesiones distintas para entrenamiento, validación y prueba.</p><div class="dataset-fields"><label>Clase<select id="capture-label"><option value="martillo">Martillo</option><option value="destornillador">Destornillador</option><option value="alicate">Alicate</option><option value="vacio">Vacío</option><option value="otros">Otros objetos</option></select></label><label>Conjunto<select id="capture-split"><option value="train">Entrenamiento</option><option value="val">Validación</option><option value="test">Prueba final</option></select></label><label>Sesión<input id="capture-session" value="sesion_01" maxlength="40" pattern="[A-Za-z0-9_-]+"></label><button id="capture-image">Guardar imagen real</button></div></details>
+    </section>
+    {% endif %}
+
+    <section id="automata-section" class="automata-section" aria-label="Diagramas de los autómatas">
+      <div class="section-heading"><div><p class="eyebrow">EL MODELO QUE CONTROLA EL SISTEMA</p><h2>Estados y transiciones</h2></div><div class="graph-key"><span><i class="key-node"></i> Estado actual</span><span><i class="key-edge"></i> Última transición</span><span><i class="key-error"></i> Incidencia</span></div></div>
+      <div class="graphs"><article class="panel graph-panel"><div class="panel-heading"><h3>Ciclo de la herramienta</h3><span class="pill">5 estados</span></div><div id="graph-inventario" class="graph-container"></div><div id="transition-inventario" class="transition-caption">Todavía no hay transiciones.</div><details><summary>Alfabeto y tabla de transición</summary><div id="table-inventario" class="table-scroll"></div></details></article><article class="panel graph-panel"><div class="panel-heading"><h3>Control de la operación</h3><span class="pill">8 estados</span></div><div id="graph-operacion" class="graph-container"></div><div id="transition-operacion" class="transition-caption">Todavía no hay transiciones.</div><details><summary>Alfabeto y tabla de transición</summary><div id="table-operacion" class="table-scroll"></div></details></article></div>
+    </section>
+    <section class="panel history-panel" aria-label="Historial de eventos"><div class="panel-heading"><div><p class="eyebrow">TRAZABILIDAD</p><h2>Cada evento cuenta</h2></div><a href="/api/historial.csv" class="button-link">Exportar CSV ↓</a></div><div class="history-toolbar"><label for="history-filter">Mostrar</label><select id="history-filter"><option value="all">Todos los eventos</option><option value="transitions">Transiciones</option><option value="rejected">Rechazos e incidencias</option></select><span id="history-total">0 eventos recibidos</span></div><div class="table-scroll history-scroll"><table class="history-table"><thead><tr><th># / HORA</th><th>ORIGEN</th><th>EVENTO</th><th>RESULTADO</th></tr></thead><tbody id="history-body"><tr><td colspan="4" class="empty-state">El historial aparecerá aquí cuando se reciba el primer estado.</td></tr></tbody></table></div><p class="field-hint">La vista muestra los 200 eventos más recientes del filtro. El registro completo se conserva en SQLite y en la exportación CSV.</p></section>
+    <section class="panel formal-panel"><details><summary>¿Qué demuestra este prototipo?</summary><p>El autómata de inventario controla el ciclo de la herramienta. El autómata de operación controla apertura, interacción, cierre y verificación. Una acción inválida se rechaza sin cambiar el inventario.</p><p>La cámara reconoce la apariencia del objeto. La puerta y los sensores son simulados: esta etapa no certifica que una herramienta haya quedado físicamente encerrada ni que esté en buen estado.</p><p>En el AFD reconocedor académico, una secuencia inválida llega al estado absorbente Error; las secuencias válidas que terminan en Disponible son aceptadas. El controlador interactivo permite corregir una acción rechazada.</p></details></section>
+    {% if mode == 'control' %}<aside class="tablet-link"><span>↗</span><div><strong>Abrir en la tablet</strong><p>Conecta ambos dispositivos a la misma red. Abre una de estas direcciones en el navegador de la tablet:</p><div id="tablet-urls">Buscando la dirección del computador…</div></div></aside>{% endif %}
+    <footer><span>AUTÓMATAS / LAB 01</span><span>Reconocimiento real · Hardware simulado · Estado compartido</span></footer>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>
