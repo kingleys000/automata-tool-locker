@@ -4,6 +4,20 @@ Prototipo académico local: **un martillo, dos autómatas, puerta y sensores sim
 
 Revisión del 18 de octubre de 2026: [estado actual, correcciones y pendientes para continuar](docs/ESTADO.md).
 
+## Nuevo módulo: simulador completo
+
+El módulo independiente permite explorar los dos autómatas sin cámara ni modelo. Incluye un compartimiento 3D animado, avance manual, cinco demostraciones automáticas, pausa y cambio de velocidad.
+
+```powershell
+.\.venv\Scripts\python.exe run_simulador.py
+```
+
+- Computador: **http://127.0.0.1:8001/simulador** (escena, controles y diagramas).
+- Tablet: **http://IP_DEL_COMPUTADOR:8001/automatas** (solo autómatas y sus eventos).
+- También puedes ejecutar `iniciar_simulador.ps1`.
+
+El simulador conserva su estado en memoria durante la sesión. El módulo de cámara continúa en el puerto 8000, con su base de datos propia. [Guía del simulador y comprobaciones](docs/SIMULADOR.md).
+
 ## Inicio en este computador
 
 El entorno `.venv` contiene las dependencias instaladas durante la implementación. En PowerShell, desde esta carpeta:

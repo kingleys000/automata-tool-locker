@@ -1,6 +1,18 @@
 # Estado para continuar el proyecto
 
-Revisado el 18 de octubre de 2026.
+Revisión del módulo original: 18 de octubre de 2026. Simulador añadido: 19 de octubre de 2026.
+
+## Nuevo módulo solicitado: simulación completa
+
+El usuario pidió conservar el módulo de cámara y construir aparte un simulador sin reconocimiento. Está implementado en `simulator/`, con `run_simulador.py` e `iniciar_simulador.ps1`.
+
+- Computador: `http://127.0.0.1:8001/simulador`, con escena 3D animada, controles, diagramas e historial.
+- Tablet: `http://IP_DEL_COMPUTADOR:8001/automatas`, con los dos diagramas sincronizados.
+- Modo manual y cinco escenarios automáticos; pausa, paso, reanudación y velocidad.
+- Sin cámara, modelo ni base de préstamos: estado en memoria e independiente del módulo original.
+- 47 pruebas aprobadas en total, incluidas 11 nuevas, y prueba de navegador completa. Ver [SIMULADOR.md](SIMULADOR.md).
+
+El módulo original se deja en su estado previo por indicación del usuario; los pendientes físicos siguientes pertenecen a ese módulo.
 
 ## Alcance encontrado
 
