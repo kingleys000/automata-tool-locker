@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="simulation-token" content="{{ token }}">
+  <title>{{ 'Simulador 3D' if mode == 'control' else 'Autómatas en vivo' }} · Laboratorio</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='simulation.css') }}">
+  <script src="{{ url_for('static', filename='simulation.js') }}" type="module"></script>
+</head>
+<body data-view="{{ mode }}">
+  <header class="topbar">
+    <div class="brand"><span class="brand-icon">a<span>→</span></span><div>AUTÓMATAS<small>LABORATORIO VIRTUAL</small></div></div>
+    <div class="topbar-right"><span class="sim-badge">100 % SIMULADO</span>{% if mode == 'control' %}<a class="tablet-preview" href="/automatas" target="_blank" rel="noopener">Vista tablet ↗</a>{% else %}<button id="fullscreen" class="subtle">Pantalla completa ⛶</button>{% endif %}<span id="connection" class="connection">Conectando</span></div>
+  </header>
+  <main>
+    <div id="offline" class="offline" hidden>Sin conexión con el computador. Los estados visibles están desactualizados.</div>
+    {% if mode == 'control' %}
+    <section class="heading"><div><p class="eyebrow">EXPLORAR · OBSERVAR · COMPRENDER</p><h1>Un laboratorio de posibilidades.</h1><p>Controla el compartimiento virtual y sigue cada transición de los autómatas.</p></div><span class="module-id">SIMULADOR / 02</span></section>
+    <section class="workspace">
+      <article class="scene-card">
+        <div class="scene-heading"><div><span class="scene-kicker">ESCENA INTERACTIVA</span><h2>Compartimiento 01</h2></div><span id="scene-led" class="scene-led">Disponible</span></div>
+        <div id="scene" class="scene" role="img" aria-label="Escena 3D del compartimiento virtual y el martillo">
+          <div class="scene-grid"></div><div class="scene-glow"></div>
+          <div id="world" class="world">
+            <div class="floor-plane"></div>
+            <div class="cabinet-shadow"></div>
+            <div class="cabinet-back"></div><div class="cabinet-left"></div><div class="cabinet-right"></div><div class="cabinet-top"></div><div class="cabinet-base"></div>
+            <div class="cabinet-sign">LAB <b>01</b><span id="cabinet-light"></span></div>
+            <div class="shelf-glow"></div>
+            <div id="tool" class="tool"><div class="hammer-head"><i></i><b></b></div><div class="hammer-handle"></div><span class="tool-caption">MARTILLO</span></div>
+            <div id="wrong-tool" class="wrong-tool" hidden><div class="wrong-head"></div><div class="wrong-handle one"></div><div class="wrong-handle two"></div><span id="wrong-label">ALICATE</span></div>
+            <div id="door" class="door"><div class="door-glass"><span>01</span><small>AUTÓMATAS LAB</small></div><div class="door-handle"></div><div class="door-edge"></div></div>
+          </div>
+          <div class="scene-controls"><span>Perspectiva</span><button id="view-left" title="Girar a la izquierda" aria-label="Girar a la izquierda">↶</button><button id="view-reset" title="Restablecer perspectiva">Restablecer</button><button id="view-right" title="Girar a la derecha" aria-label="Girar a la derecha">↷</button></div>
+        </div>
+        <div class="scene-sensors"><div><i id="door-dot"></i><span>Puerta<strong id="door-value">Cerrada</strong></span></div><div><i id="object-dot"></i><span>Contenido<strong id="object-value">Martillo</strong></span></div><div><i id="sensor-dot"></i><span>Sensor virtual<strong id="sensor-value">Conectado</strong></span></div></div>
+      </article>
+      <aside class="control-card">
+        <div class="card-title"><p class="eyebrow">TÚ CONTROLAS EL PROCESO</p><span class="tiny-tag">EN VIVO</span></div>
+        <h2>Explora una transición</h2><p class="muted">Avanza a tu ritmo o reproduce un escenario completo.</p>
+        <div class="playback"><label for="scenario">Escenario de demostración</label><select id="scenario"><option value="ciclo">01 · Ciclo completo</option><option value="incorrecta">02 · Objeto incorrecto</option><option value="fallo">03 · Fallo y recuperación</option><option value="dano">04 · Daño y reparación</option><option value="cancelacion">05 · Cancelar reserva</option></select><p id="scenario-description" class="field-help">Reserva, retiro, devolución y aprobación.</p>
+          <div class="playback-row"><button id="play" class="primary">▶ Reproducir desde inicio</button><button id="pause" disabled>Ⅱ Pausar</button></div>
+          <div class="speed-row"><label for="speed">Ritmo</label><select id="speed"><option value="3">Lento · 3 s</option><option value="1.8" selected>Normal · 1,8 s</option><option value="0.8">Rápido · 0,8 s</option></select><span id="demo-progress">Modo libre</span></div>
+        </div>
+        <div class="next-step"><span id="next-kicker">SIGUIENTE ACCIÓN</span><strong id="next-label">Solicitar martillo</strong><button id="step" class="primary">Avanzar un paso <span>→</span></button></div>
+        <details id="manual-controls"><summary>Acciones y situaciones manuales</summary><div class="manual-grid"><button data-command="solicitar">Solicitar préstamo</button><button data-command="devolver">Iniciar devolución</button><button data-command="retirar">Retirar objeto</button><button data-command="cancelar">Cancelar reserva</button><button data-command="aprobar">Aprobar</button><button data-command="danada">Registrar daño</button><button data-command="reparada">Registrar reparación</button><button id="sensor-toggle">Desconectar sensor</button></div><div class="object-controls"><label for="deposit-object">Objeto para depositar</label><select id="deposit-object"><option value="martillo">Martillo</option><option value="alicate">Alicate</option><option value="destornillador">Destornillador</option></select><button id="deposit">Depositar objeto</button></div><p class="field-help">Las acciones inválidas muestran su motivo y conservan el estado.</p></details>
+        <button id="reset" class="reset">↺ Reiniciar simulación</button>
+      </aside>
+    </section>
+    {% endif %}
+    <section class="automata-section">
+      <div class="graph-heading"><div><p class="eyebrow">{% if mode == 'tablet' %}LABORATORIO VIRTUAL · SEGUIMIENTO EN VIVO{% else %}DE LA ACCIÓN AL ESTADO{% endif %}</p><h2>Los autómatas, en movimiento.</h2></div><div class="graph-key"><span><i class="active-key"></i>Estado actual</span><span><i class="edge-key"></i>Transición reciente</span><span><i class="failure-key"></i>Recuperación / fallo</span></div></div>
+      <div class="graphs">
+        <article class="graph-card"><div class="graph-title"><span class="graph-number">01</span><div><h3>Ciclo de la herramienta</h3><p>Autómata de inventario · 5 estados</p></div><strong id="inventory-state" class="state-badge">Disponible</strong></div><div id="graph-inventario" class="graph-host"></div><div id="caption-inventario" class="graph-caption">Estado inicial: Disponible.</div></article>
+        <article class="graph-card"><div class="graph-title"><span class="graph-number">02</span><div><h3>Control de la operación</h3><p>Autómata de operación · 8 estados</p></div><strong id="operation-state" class="state-badge">Inactiva</strong></div><div id="graph-operacion" class="graph-host"></div><div id="caption-operacion" class="graph-caption">Estado inicial: Inactiva.</div></article>
+      </div>
+      <div id="explanation" class="explanation" role="status"><span class="explanation-icon">→</span><p id="message">Conectando con el simulador…</p><span id="event-number">EVENTO 001</span></div>
+    </section>
+    {% if mode == 'control' %}
+    <section class="bottom-grid"><article class="history-card"><div class="history-heading"><div><p class="eyebrow">LA HISTORIA DE ESTA SESIÓN</p><h2>Acciones que dejan huella.</h2></div><span id="loan-count">0 préstamos · 0 devoluciones</span></div><ol id="history"><li>Esperando eventos…</li></ol></article><aside class="connection-card"><span class="tablet-icon">▣</span><p class="eyebrow">SEGUNDA PANTALLA</p><h2>Lleva los autómatas<br>a la tablet.</h2><p>Conecta ambos equipos a la misma red y abre esta dirección. La tablet seguirá los estados del computador.</p><div id="tablet-links">Buscando dirección de red…</div><span class="connection-note">Vista de diagramas · Solo lectura</span></aside></section>
+    <footer><span>AUTÓMATAS / LABORATORIO VIRTUAL</span><span>Escena, sensores y herramientas simulados</span></footer>
+    {% endif %}
+  </main>
+  {% if mode == 'control' %}<div id="toast" class="toast" role="status" hidden></div>{% endif %}
+</body>
+</html>
