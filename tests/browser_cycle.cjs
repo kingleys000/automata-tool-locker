@@ -3,14 +3,14 @@
 const assert = require('node:assert/strict');
 const {spawn} = require('node:child_process');
 const fs = require('node:fs');
-const path = require('node:path');
+const {pythonBin, browserLaunchOptions} = require('./browser_env.cjs');
 const {chromium} = require(process.argv[2] || 'playwright');
 (async()=>{
-  const server = spawn(path.resolve('.venv/Scripts/python.exe'),['-u','tests/browser_fixture.py'],{windowsHide:true,stdio:['pipe','pipe','pipe']});
+  const server = spawn(pythonBin(),['-u','tests/browser_fixture.py'],{windowsHide:true,stdio:['pipe','pipe','pipe']});
   let browser;
   try{
     await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Fixture no inicia')),15000);server.once('error',reject);server.stdout.on('data',chunk=>{if(chunk.toString().includes('UI_FIXTURE_READY')){clearTimeout(timer);resolve();}});server.stderr.on('data',chunk=>process.stderr.write(chunk));});
-    browser=await chromium.launch({headless:true,channel:'msedge'});
+    browser=await chromium.launch(browserLaunchOptions());
     const control=await browser.newPage({viewport:{width:1440,height:1000}});
     const monitor=await browser.newPage({viewport:{width:1280,height:800}});
     const errors=[];control.on('pageerror',e=>errors.push(e.message));monitor.on('pageerror',e=>errors.push(e.message));

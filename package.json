@@ -1,0 +1,14 @@
+{
+  "name": "automata-tool-locker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Laboratorio de herramientas con autómatas. Pruebas de navegador con Playwright.",
+  "devDependencies": {
+    "playwright": "^1.64.1"
+  },
+  "scripts": {
+    "test:browser": "node tests/browser_check.cjs",
+    "test:browser:cycle": "node tests/browser_cycle.cjs",
+    "test:browser:simulator": "node tests/simulator_browser.cjs"
+  }
+}

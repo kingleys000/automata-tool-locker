@@ -10,7 +10,15 @@ Desde la carpeta del proyecto, ejecuta:
 .\.venv\Scripts\python.exe run_simulador.py
 ```
 
-También puedes usar `iniciar_simulador.ps1`. Usa las dependencias básicas de `requirements.txt`: Flask y Waitress. No necesita OpenCV, PyTorch, cámara, imágenes ni un modelo entrenado. Los recursos visuales se sirven desde el computador y no requieren internet.
+En Linux o Fedora:
+
+```bash
+./iniciar_simulador.sh
+# o directamente:
+.venv/bin/python run_simulador.py
+```
+
+También puedes usar `iniciar_simulador.ps1` (Windows) o `iniciar_simulador.sh` (Linux). Usa las dependencias básicas de `requirements.txt`: Flask y Waitress. No necesita OpenCV, PyTorch, cámara, imágenes ni un modelo entrenado. Los recursos visuales se sirven desde el computador y no requieren internet.
 
 | Dispositivo | Dirección | Contenido |
 |---|---|---|
@@ -74,7 +82,14 @@ La reproducción ocurre en el servidor: continúa aunque el navegador del comput
 node tests/simulator_browser.cjs
 ```
 
-Para el navegador se requiere Playwright y Edge. Si Playwright está en otra carpeta, pasa la ruta de su módulo como segundo argumento. La prueba inicia su propio simulador temporal en `127.0.0.1:8102` y lo cierra al terminar.
+En Linux o Fedora:
+
+```bash
+.venv/bin/python -m pytest tests/test_simulator.py -q -p no:cacheprovider
+node tests/simulator_browser.cjs
+```
+
+Se requiere Playwright con un navegador disponible: en Windows se usa Edge (`msedge`), y en otros sistemas el Chromium gestionado por Playwright (definir `BROWSER_CHANNEL` fuerza otro canal). Si Playwright está en otra carpeta, pasa la ruta de su módulo como segundo argumento. La prueba usa `.venv/bin/python` en Linux o `.venv/Scripts/python.exe` en Windows para iniciar su propio simulador temporal en `127.0.0.1:8102` y lo cierra al terminar; el intérprete se anula con `PYTHON_BIN`.
 
 Resultados ejecutados: **47 pruebas aprobadas en la suite conjunta**, incluidas 11 del simulador. Estas últimas cubren los cinco escenarios, diez ciclos manuales, pausa/paso/reanudación, idempotencia, entradas inválidas y permisos de la tablet. La prueba de Edge comprobó un ciclo manual completo, demostración automática con fallo y recuperación, dos páginas sincronizadas, reconexión y diseños de escritorio (1440×1000), tablet (1280×800 y 800×1280) y móvil (390×844). Las capturas están en `artifacts/simulador-*.png`.
 

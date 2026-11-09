@@ -1,5 +1,7 @@
 # Laboratorio de herramientas con autómatas
 
+Documentación académica: [avances 3, 4 y 5 y material de sustentación](docs/avances/README.md).
+
 Prototipo académico local: **un martillo, dos autómatas, puerta y sensores simulados, cámara real**. El computador controla las operaciones y la tablet observa los diagramas. El reconocimiento necesita imágenes de tus herramientas y un modelo entrenado; no se incluye un modelo ficticio ni se autorizan préstamos sin evidencia visual.
 
 Revisión del 18 de octubre de 2026: [estado actual, correcciones y pendientes para continuar](docs/ESTADO.md).
@@ -12,9 +14,15 @@ El módulo independiente permite explorar los dos autómatas sin cámara ni mode
 .\.venv\Scripts\python.exe run_simulador.py
 ```
 
+```bash
+./iniciar_simulador.sh
+# o directamente:
+.venv/bin/python run_simulador.py
+```
+
 - Computador: **http://127.0.0.1:8001/simulador** (escena, controles y diagramas).
 - Tablet: **http://IP_DEL_COMPUTADOR:8001/automatas** (solo autómatas y sus eventos).
-- También puedes ejecutar `iniciar_simulador.ps1`.
+- También puedes ejecutar `iniciar_simulador.ps1` (Windows) o `iniciar_simulador.sh` (Linux).
 
 El simulador conserva su estado en memoria durante la sesión. El módulo de cámara continúa en el puerto 8000, con su base de datos propia. [Guía del simulador y comprobaciones](docs/SIMULADOR.md).
 
@@ -26,7 +34,15 @@ El entorno `.venv` contiene las dependencias instaladas durante la implementaci�
 .\.venv\Scripts\python.exe run.py
 ```
 
-También puedes ejecutar `iniciar.ps1`. Mantén la terminal abierta; `Ctrl+C` detiene el servidor.
+En Linux o Fedora:
+
+```bash
+./iniciar.sh
+# o directamente:
+.venv/bin/python run.py
+```
+
+También puedes ejecutar `iniciar.ps1` (Windows) o `iniciar.sh` (Linux). Mantén la terminal abierta; `Ctrl+C` detiene el servidor.
 
 - Control del computador: **http://127.0.0.1:8000/control**
 - Tablet: **http://IP_DEL_COMPUTADOR:8000/monitor**, usando la misma red.
@@ -36,7 +52,9 @@ También puedes ejecutar `iniciar.ps1`. Mantén la terminal abierta; `Ctrl+C` de
 
 ## Instalación en otro equipo
 
-Recomendado: Python **3.12 de 64 bits**, Windows 10/11 y navegador actualizado. No copies `.venv` a otro computador: recréalo.
+Recomendado: Python **3.12 de 64 bits** (es la versión validada del proyecto), Windows 10/11 o Linux (Fedora), y navegador actualizado. No copies `.venv` a otro computador: recréalo.
+
+En PowerShell:
 
 ```powershell
 py -3.12 -m venv .venv
@@ -45,7 +63,17 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe run.py
 ```
 
-`instalar.ps1` e `instalar_vision.ps1` automatizan esos pasos. No es necesario activar el entorno ni cambiar la política global de ejecución de PowerShell: siempre puedes ejecutar los comandos anteriores directamente. Las descargas iniciales de PyTorch y del peso base requieren internet; el portal y el modelo ya entrenado funcionan localmente.
+En Linux o Fedora:
+
+```bash
+./instalar.sh          # elige $PYTHON, luego .tools/python312/bin/python3, luego python3.12 del PATH
+./instalar_vision.sh   # solo si necesitas cámara y modelo
+./iniciar.sh
+```
+
+También puedes ejecutar los pasos a mano: crea el entorno con `python3.12 -m venv .venv` e instala con `.venv/bin/python -m pip install -r requirements-dev.txt`.
+
+`instalar.ps1`/`instalar.sh` e `instalar_vision.ps1`/`instalar_vision.sh` automatizan esos pasos. No es necesario activar el entorno ni cambiar la política global de ejecución de PowerShell: siempre puedes ejecutar los comandos anteriores directamente. Las descargas iniciales de PyTorch y del peso base requieren internet; el portal y el modelo ya entrenado funcionan localmente.
 
 ## Primer uso
 
@@ -68,11 +96,20 @@ Usuarios de demostración: `1001`, `1002`; encargado: `ADMIN`. Son códigos acad
 node --check static/app.js
 ```
 
+En Linux o Fedora:
+
+```bash
+.venv/bin/python -m pytest -q --basetemp=.pytest_tmp
+node --check static/app.js
+```
+
 Las pruebas de lógica usan un adaptador de cámara controlado **solo dentro de los tests**. No existe un endpoint para introducir resultados de reconocimiento falsos. Diez ciclos en tests no equivalen a diez ciclos con el celular y tus herramientas.
 
-La comprobación visual usa Playwright y Edge con el servidor iniciado: `node tests/browser_check.cjs`. Si Playwright no está en el proyecto, pasa como segundo argumento la ruta de su módulo instalado. Opcionalmente, pasa la URL del servidor como tercer argumento. Las capturas se guardan en `artifacts/`.
+La comprobación visual usa Playwright con el servidor iniciado: `node tests/browser_check.cjs` (o `npm run test:browser` con el Playwright local de `node_modules`). Si Playwright no está en el proyecto, pasa como segundo argumento la ruta de su módulo instalado. Opcionalmente, pasa la URL del servidor como tercer argumento. Las capturas se guardan en `artifacts/`.
 
-`node tests/browser_cycle.cjs` verifica un ciclo de interfaz en un servidor temporal independiente, con observaciones controladas solo para tests. [Resultados y límites de validación](docs/VALIDACION.md).
+Las pruebas de navegador son portables: usan el intérprete `.venv/bin/python` en Linux o `.venv/Scripts/python.exe` en Windows (anulable con `PYTHON_BIN`) y, en Linux, el Chromium gestionado por Playwright; define `BROWSER_CHANNEL` para usar otro canal, y en Windows se conserva Edge por defecto.
+
+`node tests/browser_cycle.cjs` (`npm run test:browser:cycle`) verifica un ciclo de interfaz en un servidor temporal independiente, con observaciones controladas solo para tests. `node tests/simulator_browser.cjs` (`npm run test:browser:simulator`) hace lo propio con el simulador aislado. [Resultados y límites de validación](docs/VALIDACION.md).
 
 ## Organización
 

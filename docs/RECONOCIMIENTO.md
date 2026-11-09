@@ -1,10 +1,12 @@
 # Preparar el reconocimiento con tus herramientas
 
-## 1. Conectar el celular
+## 1. Conectar la cámara
 
-Instala DroidCam desde su fuente oficial en Android y el cliente de Windows: <https://droidcam.app/windows/>. Sigue la conexión USB de <https://droidcam.app/help/>. El cable debe permitir datos; según el celular, necesitarás depuración USB y su controlador. Autoriza únicamente el computador que usarás.
+En **Fedora/Linux** puedes usar directamente la webcam nativa por V4L (por ejemplo `/dev/video0`, presente en esta máquina): selecciona su índice en `/control` y pulsa **Iniciar cámara**.
 
-Fija el celular de frente a una zona de fondo uniforme. Evita reflejos y sombras fuertes. Abre DroidCam; en `/control` selecciona el índice de cámara y pulsa **Iniciar cámara**. Si se muestra otra cámara, deténla y cambia el índice. No se necesita una caja física todavía.
+En **Windows** puedes usar el celular como cámara con DroidCam, de forma opcional. Instala DroidCam desde su fuente oficial en Android y el cliente de Windows: <https://droidcam.app/windows/>. Sigue la conexión USB de <https://droidcam.app/help/>. El cable debe permitir datos; según el celular, necesitarás depuración USB y su controlador. Autoriza únicamente el computador que usarás. La preparación del teléfono (instalación, cable, depuración USB) se realiza por fuera de este repositorio.
+
+Fija la cámara de frente a una zona de fondo uniforme. Evita reflejos y sombras fuertes. Abre DroidCam si lo usas; en `/control` selecciona el índice de cámara y pulsa **Iniciar cámara**. Si se muestra otra cámara, deténla y cambia el índice. No se necesita una caja física todavía.
 
 El rectángulo verde indica la región de interés. Se recorta esa región y se rellena hasta formar un cuadrado sin cortar la herramienta; ese mismo preprocesamiento se utiliza en las capturas y la inferencia. No muevas el celular después de capturar el dataset sin volver a validar.
 
@@ -69,7 +71,7 @@ Detén e inicia la cámara para cargar el modelo. Prueba las cinco clases, objet
 
 ## 5. Si falla
 
-- **No abre cámara:** inicia DroidCam, revisa índice, cable y permisos de cámara de Windows; cierra aplicaciones que la estén usando.
+- **No abre cámara:** revisa el índice y los permisos; en Linux comprueba que el dispositivo V4L existe (p. ej. `/dev/video0`) y no está ocupado por otra aplicación; en Windows con DroidCam, inicia DroidCam y revisa cable y permisos.
 - **Video pero sin modelo:** captura el dataset y entrena; revisa el nombre y las cinco clases del modelo.
 - **Nunca estabiliza:** mide iluminación y rendimiento, revisa ROI y datos; no reduzcas el umbral para ocultar falsos positivos.
 - **Confunde alicate y martillo:** añade ejemplos independientes de esas posiciones y vuelve a evaluar.

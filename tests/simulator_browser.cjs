@@ -2,12 +2,12 @@
 const assert = require('node:assert/strict');
 const {spawn} = require('node:child_process');
 const fs = require('node:fs');
-const path = require('node:path');
+const {pythonBin, browserLaunchOptions} = require('./browser_env.cjs');
 const {chromium} = require(process.argv[2] || 'playwright');
 
 (async () => {
   fs.mkdirSync('artifacts', {recursive:true});
-  const server=spawn(path.resolve('.venv/Scripts/python.exe'),['-u','run_simulador.py','--port','8102','--host','127.0.0.1'],{windowsHide:true,stdio:['ignore','pipe','pipe']});
+  const server=spawn(pythonBin(),['-u','run_simulador.py','--port','8102','--host','127.0.0.1'],{windowsHide:true,stdio:['ignore','pipe','pipe']});
   let browser;
   try {
     await new Promise((resolve,reject)=>{
@@ -16,7 +16,7 @@ const {chromium} = require(process.argv[2] || 'playwright');
       server.stdout.on('data',data=>{if(data.toString().includes('Simulador:')){clearTimeout(timeout);resolve();}});
       server.stderr.on('data',data=>process.stderr.write(data));
     });
-    browser=await chromium.launch({headless:true,channel:'msedge'});
+    browser=await chromium.launch(browserLaunchOptions());
     const errors=[];
     const control=await browser.newPage({viewport:{width:1440,height:1000}});
     const tablet=await browser.newPage({viewport:{width:1280,height:800}});

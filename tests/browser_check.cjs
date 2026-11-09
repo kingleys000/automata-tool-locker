@@ -2,10 +2,11 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const {browserLaunchOptions} = require('./browser_env.cjs');
 const {chromium} = require(process.argv[2] || 'playwright');
 const baseUrl = process.argv[3] || 'http://127.0.0.1:8000';
 (async () => {
-  const browser = await chromium.launch({headless: true, channel: 'msedge'});
+  const browser = await chromium.launch(browserLaunchOptions());
   const errors = [];
   fs.mkdirSync('artifacts', {recursive:true});
   for (const [name, route, viewport] of [
