@@ -1,0 +1,41 @@
+erDiagram
+    users {
+        TEXT code PK "PRIMARY KEY"
+        TEXT name "NOT NULL"
+        TEXT role "NOT NULL ('usuario' | 'encargado')"
+    }
+
+    loans {
+        INTEGER id PK "PRIMARY KEY AUTOINCREMENT"
+        TEXT user_code "NOT NULL (Relación lógica con users.code; sin FK en SQLite)"
+        TEXT tool "NOT NULL ('martillo')"
+        TEXT borrowed_at "NOT NULL (ISO UTC timestamp)"
+        TEXT returned_at "NULL mientras esté activo"
+        INTEGER simulated_hardware "NOT NULL (1=True, 0=False)"
+    }
+
+    events {
+        INTEGER seq PK "PRIMARY KEY AUTOINCREMENT"
+        TEXT time "NOT NULL (ISO UTC timestamp)"
+        TEXT machine "NULL o 'inventario' | 'operacion'"
+        TEXT event "NOT NULL (identificador de acción o transición)"
+        TEXT previous "NULL o estado origen"
+        TEXT current "NULL o estado destino"
+        TEXT source "NOT NULL ('usuario'|'camara'|'simulador'|'sistema')"
+        INTEGER accepted "NOT NULL (1=Aceptado, 0=Rechazado)"
+        TEXT message "NOT NULL (detalle técnico o motivo de rechazo)"
+    }
+
+    state {
+        INTEGER id PK "PRIMARY KEY CHECK(id=1)"
+        TEXT value "NOT NULL (JSON con estado global serializado)"
+    }
+
+    requests {
+        TEXT id PK "PRIMARY KEY (Client-generated UUID)"
+        TEXT payload "NOT NULL (JSON canonicalizado de acción y parámetros)"
+        TEXT result "NOT NULL (JSON de respuesta para idempotencia)"
+    }
+
+    %% Vínculo lógico documentado explícitamente sin FK de base de datos
+    users ||--o{ loans : "vinculación lógica de negocio (validada en Python por Engine._user)"

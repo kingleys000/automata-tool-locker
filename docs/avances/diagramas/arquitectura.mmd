@@ -1,0 +1,79 @@
+flowchart TB
+    %% Capa de Clientes
+    subgraph Clientes["Capa de Presentación e Interfaz (Navegadores)"]
+        ControlPC["Centro de Control Local (PC)<br/>http://127.0.0.1:8000/control<br/>(Lectura/Escritura con X-Control-Token)"]
+        MonitorTablet["Monitor de Consulta (Tablet)<br/>http://IP_PC:8000/monitor<br/>(Solo lectura, Polling 500 ms)"]
+        SimuladorPC["Simulador Didáctico 3D (PC)<br/>http://127.0.0.1:8001/simulador<br/>(Control independiente en memoria)"]
+        SimuladorTablet["Monitor Simulador (Tablet)<br/>http://IP_PC:8001/automatas<br/>(Solo lectura, diagramas sincronizados)"]
+    end
+
+    %% Capa de Servidor Web y Seguridad
+    subgraph ServidorWeb["Capa de Servicios Web (Python / Flask + Waitress)"]
+        subgraph ServidorPrincipal["Módulo Prototipo (Puerto 8000)"]
+            FiltroSeguridad["Seguridad y Control de Acceso<br/>- Restricción Loopback para /control<br/>- Comparación del token de X-Control-Token<br/>- Filtro de Origin y Sec-Fetch-Site"]
+            APIRest["Endpoints REST Prototipo<br/>- GET /api/estado (snapshot incremental)<br/>- POST /api/acciones (despacho idempotente)<br/>- GET /api/camara/imagen (stream JPEG)<br/>- GET /api/historial.csv (auditoría exportable)"]
+        end
+
+        subgraph ServidorSimulador["Módulo Simulador Independiente (Puerto 8001)"]
+            APISimulador["Endpoints Simulador<br/>- GET /api/simulador/estado<br/>- POST /api/simulador/acciones"]
+            MotorSimulador["Motor de Simulación en Memoria<br/>(Escenarios automáticos y modo paso a paso)"]
+        end
+    end
+
+    %% Capa de Lógica de Negocio y Control
+    subgraph LogicaNegocio["Capa de Lógica de Negocio y Control Central"]
+        subgraph MotorPrototipo["Motor Determinista (app.engine.Engine)"]
+            Bloqueo["Serialización de Hilos (RLock)"]
+            Idempotencia["Gestor de Idempotencia (requests)"]
+            Watchdog["Vigilante Temporal (Ticker 250 ms)"]
+        end
+
+        subgraph AutomatasyReglas["Modelos Formales (app.automata)"]
+            AutInventario["Autómata de Inventario<br/>(5 estados deterministas)"]
+            AutOperacion["Autómata de Operación<br/>(8 estados + modos)"]
+            ReconocedorAFD["Reconocedor de Trazas AFD"]
+        end
+
+        subgraph VisionArtificial["Gestor de Visión (app.camera.CameraManager)"]
+            CapturaCV["Captura OpenCV / DroidCam<br/>Buffer circular (deque maxlen 200)"]
+            ModeloYOLO["Clasificador YOLO11n-cls<br/>(5 clases: martillo, vacio, etc.)"]
+            DatasetMgr["Gestor de Dataset y Sesiones<br/>(Prevención de fuga train/val/test)"]
+        end
+
+        subgraph AdaptadorHardware["Adaptador de Hardware (app.hardware)"]
+            SimulatedHw["SimulatedHardware (Actual)<br/>- Puerta y presencia simulados<br/>- Sin Arduino electromecánico"]
+            ArduinoHw["HardwareAdapter (Contrato Futuro)<br/>- Protocolo Serial Arduino"]
+        end
+    end
+
+    %% Capa de Persistencia
+    subgraph Persistencia["Capa de Persistencia Atómica"]
+        SQLiteDB[("SQLite WAL: data/prestamos.sqlite<br/>------------------------------------<br/>- state (estado JSON persistido)<br/>- users (roles demostrativos)<br/>- loans (préstamos y unicidad parcial)<br/>- events (auditoría secuencial append-only)<br/>- requests (respuestas idempotentes)")]
+        MemoriaSim[("Memoria RAM Volátil<br/>(Estado temporal del simulador)")]
+    end
+
+    %% Relaciones y Flujos de Datos
+    ControlPC -->|"HTTP POST con Token / GET"| FiltroSeguridad
+    MonitorTablet -->|"HTTP GET (sin token)"| APIRest
+    SimuladorPC -->|"HTTP POST / GET"| APISimulador
+    SimuladorTablet -->|"HTTP GET"| APISimulador
+
+    FiltroSeguridad --> APIRest
+    APISimulador --> MotorSimulador
+    MotorSimulador --> AutInventario
+    MotorSimulador --> AutOperacion
+    MotorSimulador --> MemoriaSim
+
+    APIRest --> Bloqueo
+    Bloqueo --> Idempotencia
+    Idempotencia --> MotorPrototipo
+    Watchdog --> MotorPrototipo
+
+    MotorPrototipo --> AutInventario
+    MotorPrototipo --> AutOperacion
+    MotorPrototipo --> SimulatedHw
+    MotorPrototipo --> SQLiteDB
+
+    CapturaCV --> ModeloYOLO
+    ModeloYOLO -->|"observe(label, conf, time)"| MotorPrototipo
+    DatasetMgr --> CapturaCV

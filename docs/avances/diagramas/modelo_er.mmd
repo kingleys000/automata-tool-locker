@@ -1,0 +1,41 @@
+erDiagram
+    USUARIO {
+        string code PK "Código identificador (demostrativo 1001, 1002, ADMIN)"
+        string name "Nombre completo del usuario o encargado"
+        string role "Rol en el sistema: 'usuario' o 'encargado'"
+    }
+
+    PRESTAMO {
+        int id PK "Identificador único autoincremental"
+        string user_code "Código del usuario responsable (relación lógica)"
+        string tool "Herramienta administrada ('martillo')"
+        datetime borrowed_at "Marca temporal ISO UTC de retiro confirmado"
+        datetime returned_at "Marca temporal ISO UTC de retorno (NULL mientras esté activo)"
+        int simulated_hardware "Indicador de hardware simulado (1=simulado)"
+    }
+
+    EVENTO {
+        int seq PK "Secuencia monotónica autoincremental"
+        datetime time "Marca temporal ISO UTC del suceso"
+        string machine "Autómata afectado: 'inventario' u 'operacion'"
+        string event "Nombre del evento ejecutado o intentado"
+        string previous "Estado previo a la transición"
+        string current "Estado resultante de la transición"
+        string source "Origen: 'usuario', 'camara', 'simulador' o 'sistema'"
+        int accepted "Booleano: 1 si fue aceptado, 0 si fue rechazado"
+        string message "Mensaje descriptivo o motivo de rechazo"
+    }
+
+    ESTADO_SISTEMA {
+        int id PK "Identificador único fijo (CHECK id=1)"
+        string value "Objeto JSON serializado con estado global y variables"
+    }
+
+    SOLICITUD {
+        string id PK "Identificador único de petición HTTP (UUID)"
+        string payload "Carga JSON serializada de la acción solicitada"
+        string result "Respuesta JSON almacenada para idempotencia"
+    }
+
+    %% Relaciones conceptuales
+    USUARIO ||--o{ PRESTAMO : "solicita y es responsable de (relación lógica en software)"

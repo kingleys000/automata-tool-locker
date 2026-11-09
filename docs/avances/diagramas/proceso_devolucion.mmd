@@ -1,0 +1,28 @@
+flowchart TD
+    Inicio(["Inicio: Devolución de herramienta"]) --> IngresoResponsable["Ingresar código del responsable (ej. 1001)"]
+    IngresoResponsable --> ValidarInicioDevolucion{"¿Condiciones válidas?<br/>- Operación = Inactiva<br/>- Puerta cerrada y sensor conectado<br/>- Inventario = Prestada<br/>- Coincide titular con préstamo activo<br/>- Casilla vacía (presencia = False)<br/>- Visión confirma 'vacio' (≥2s)"}
+
+    ValidarInicioDevolucion -- No --> RechazarDevolucion["Acción rechazada<br/>- Estado no muta<br/>- Registro en events con accepted = 0<br/>- Mensaje descriptivo del motivo"]
+    RechazarDevolucion --> FinRechazo(["Fin con rechazo"])
+
+    ValidarInicioDevolucion -- Sí --> IniciarApertura["Transición Operación: Inactiva → Abriendo<br/>Modo = devolucion, Owner = usuario"]
+    IniciarApertura --> PuertaAbierta["Confirmar apertura de puerta (sensor simulado)<br/>Transición Operación: Abriendo → Esperando depósito"]
+    PuertaAbierta --> Depositar["Usuario deposita el martillo en la casilla<br/>Sensor simulado actualiza presencia = True"]
+    Depositar --> SolicitarCierre["Cerrar requiere presencia y visión estable compatibles<br/>Transición Operación: Esperando depósito → Cerrando"]
+    SolicitarCierre --> CierreConfirmado["Confirmar cierre de puerta (sensor simulado)<br/>Transición Operación: Cerrando → Verificando<br/>Fijar verify_since"]
+
+    CierreConfirmado --> VerificacionVisual{"Verificación post-cierre:<br/>¿Presencia = True y visión detecta<br/>'martillo' estable (≥2s)?"}
+
+    VerificacionVisual -- Sí --> RegistrarDevolucion["Transición Inventario: Prestada → En revisión<br/>Transición Operación: Verificando → Completada<br/>Actualizar SQLite 'loans': returned_at = timestamp"]
+    RegistrarDevolucion --> Finalizar["Usuario presiona 'Finalizar'<br/>Transición Operación: Completada → Inactiva"]
+    Finalizar --> RevisionHumana{"Inspección física por Encargado<br/>(Código ADMIN)"}
+
+    RevisionHumana -- Sin daños --> Aprobar["Encargado presiona 'Aprobar'<br/>Transición Inventario: En revisión → Disponible<br/>Herramienta lista para nuevo préstamo"]
+    Aprobar --> FinDisponible(["Fin: Herramienta Disponible"])
+
+    RevisionHumana -- Presenta avería --> MarcarDano["Encargado presiona 'Registrar Daño'<br/>Transición Inventario: En revisión → Fuera de servicio"]
+    MarcarDano --> Reparar["Tras reparación humana, Encargado ADMIN registra 'Reparada'<br/>Transición Inventario: Fuera de servicio → En revisión"]
+    Reparar --> RevisionHumana
+
+    VerificacionVisual -- Evidencia incorrecta estable o timeout --> Incidencia["Transición Operación: Verificando → Incidencia<br/>Alerta LED intermitente<br/>Préstamo sigue abierto en SQLite<br/>Requiere reintento o asistencia"]
+    VerificacionVisual -- "Sin evidencia concluyente y dentro del plazo" --> VerificacionVisual

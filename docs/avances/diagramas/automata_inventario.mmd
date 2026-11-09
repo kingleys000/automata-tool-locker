@@ -1,0 +1,14 @@
+stateDiagram-v2
+    [*] --> Disponible: Inicialización
+
+    Disponible --> Reservada: solicitud_verificada<br/>(Código válido + presencia + visión 'martillo')
+    
+    Reservada --> Prestada: retiro_verificado<br/>(Puerta cerrada + sin presencia + visión 'vacio')
+    Reservada --> Disponible: cancelacion_verificada<br/>(Puerta cerrada + presencia + visión 'martillo')
+    
+    Prestada --> En_revision: devolucion_verificada<br/>(Puerta cerrada + presencia + visión 'martillo')
+    
+    En_revision --> Disponible: aprobacion<br/>(Inspección humana conforme por Encargado)
+    En_revision --> Fuera_de_servicio: dano<br/>(Inspección humana detecta avería o desgaste)
+    
+    Fuera_de_servicio --> En_revision: reparacion<br/>(Mantenimiento técnico concluido; exige nueva revisión)

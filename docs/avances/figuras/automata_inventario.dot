@@ -1,0 +1,14 @@
+digraph G {
+graph [rankdir=LR, bgcolor="white", pad=0.3, nodesep=0.4, ranksep=0.7];
+node [shape=box, style="rounded", fontname="DejaVu Sans", fontsize=12];
+edge [fontname="DejaVu Sans", fontsize=10];
+inicio [shape=point];
+inicio -> "Disponible";
+"Disponible" -> "Reservada" [label="solicitud_verificada"];
+"Reservada" -> "Prestada" [label="retiro_verificado"];
+"Reservada" -> "Disponible" [label="cancelacion_verificada"];
+"Prestada" -> "En revisión" [label="devolucion_verificada"];
+"En revisión" -> "Disponible" [label="aprobacion"];
+"En revisión" -> "Fuera de servicio" [label="dano"];
+"Fuera de servicio" -> "En revisión" [label="reparacion"];
+}

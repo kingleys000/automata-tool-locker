@@ -1,0 +1,47 @@
+flowchart TD
+    %% Actores del sistema
+    subgraph Actores["Actores del Sistema"]
+        Estudiante["Estudiante / Usuario<br/>(Identificación demostrativa 1001, 1002)"]
+        Encargado["Encargado de Laboratorio<br/>(Identificación demostrativa ADMIN)"]
+        Operador["Operador Local<br/>(Administración de PC y cámara)"]
+        CamaraSensor["Subsistema Visión y Sensores<br/>(Cámara real y hardware simulado)"]
+    end
+
+    %% Límite del sistema
+    subgraph Sistema["Prototipo de Control de Préstamos (Sistema Local)"]
+        UC01(["UC01: Solicitar Préstamo de Martillo"])
+        UC02(["UC02: Confirmar Apertura y Retiro"])
+        UC03(["UC03: Cancelar Reserva de Préstamo"])
+        UC04(["UC04: Iniciar Devolución de Herramienta"])
+        UC05(["UC05: Confirmar Cierre y Depósito"])
+        UC06(["UC06: Inspeccionar y Aprobar Devolución"])
+        UC07(["UC07: Registrar Daño Técnico (Fuera de Servicio)"])
+        UC08(["UC08: Registrar Reparación de Herramienta"])
+        UC09(["UC09: Consultar Monitor y Trazabilidad (Solo Lectura)"])
+        UC10(["UC10: Recuperar Operación ante Incidencia"])
+        UC11(["UC11: Operar Cámara y Capturar Muestras de Dataset"])
+    end
+
+    %% Relaciones de actores humanos con casos de uso
+    Estudiante --> UC01
+    Estudiante --> UC02
+    Estudiante --> UC03
+    Estudiante --> UC04
+    Estudiante --> UC05
+    Estudiante --> UC09
+
+    Encargado --> UC06
+    Encargado --> UC07
+    Encargado --> UC08
+    Encargado --> UC09
+    Encargado --> UC10
+
+    Operador --> UC10
+    Operador --> UC11
+    Operador --> UC09
+
+    %% Relación de subsistema técnico
+    CamaraSensor -.->|"Evidencia visual y lecturas"| UC01
+    CamaraSensor -.->|"Detección y confirmación"| UC02
+    CamaraSensor -.->|"Comprobación de depósito"| UC05
+    CamaraSensor -.->|"Detección de fallos"| UC10

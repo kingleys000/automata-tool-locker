@@ -1,0 +1,20 @@
+digraph G {
+graph [rankdir=LR, bgcolor="white", pad=0.3, nodesep=0.4, ranksep=0.7];
+node [shape=box, style="rounded", fontname="DejaVu Sans", fontsize=12];
+edge [fontname="DejaVu Sans", fontsize=10];
+control [label="Navegador local\n/control"];
+monitor [label="Monitor de lectura\n/monitor"];
+web [label="Flask\nAPI y vistas"];
+motor [label="Motor\nReglas y autómatas"];
+camara [label="Cámara\nCaptura y clasificación"];
+hardware [label="Adaptador simulado\nPuerta y presencia"];
+db [shape=cylinder, label="SQLite\nEstado y registros"];
+control -> web [label="acciones y consultas"];
+monitor -> web [label="consultas"];
+web -> motor;
+camara -> motor [label="observaciones"];
+hardware -> motor [label="señales"];
+motor -> hardware [label="comandos"];
+motor -> db [label="transacciones"];
+
+}

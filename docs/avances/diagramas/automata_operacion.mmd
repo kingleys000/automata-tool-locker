@@ -1,0 +1,28 @@
+stateDiagram-v2
+    [*] --> Inactiva: Prototipo encendido
+
+    Inactiva --> Abriendo: iniciar<br/>(Orden 'abrir' emitida)
+    
+    Abriendo --> Esperando_retiro: abrir_retiro<br/>(Sensor confirma puerta abierta en préstamo)
+    Abriendo --> Esperando_deposito: abrir_deposito<br/>(Sensor confirma puerta abierta en devolución)
+    
+    Esperando_retiro --> Cerrando: solicitar_cierre<br/>(Usuario solicita cierre tras retiro)
+    Esperando_deposito --> Cerrando: solicitar_cierre<br/>(Usuario solicita cierre tras depósito)
+    
+    Cerrando --> Verificando: cierre_confirmado<br/>(Sensor confirma puerta cerrada; activa verify_since)
+    
+    Verificando --> Completada: verificacion_correcta<br/>(Cámara y presencia confirman contenido esperado)
+    
+    Completada --> Inactiva: finalizar<br/>(Usuario concluye; libera sesión)
+    
+    %% Transiciones de error e incidencia
+    Abriendo --> Incidencia: fallo (Sensor desconectado / timeout)
+    Esperando_retiro --> Incidencia: fallo (Sensor desconectado / discrepancia)
+    Esperando_deposito --> Incidencia: fallo (Sensor desconectado / discrepancia)
+    Cerrando --> Incidencia: fallo (Avería de cierre)
+    Verificando --> Incidencia: fallo (Objeto incorrecto / timeout de verificación)
+    
+    %% Rutas de recuperación desde incidencia
+    Incidencia --> Abriendo: reabrir<br/>(Reintento con puerta cerrada; se vuelve a abrir)
+    Incidencia --> Esperando_retiro: recuperar_retiro<br/>(Reintento con puerta abierta en préstamo)
+    Incidencia --> Esperando_deposito: recuperar_deposito<br/>(Reintento con puerta abierta en devolución)

@@ -1,0 +1,12 @@
+digraph G {
+graph [rankdir=LR, bgcolor="white", pad=0.3, nodesep=0.4, ranksep=0.7];
+node [shape=box, style="rounded", fontname="DejaVu Sans", fontsize=12];
+edge [fontname="DejaVu Sans", fontsize=10];
+users [label="users\ncode PK\nname\nrole"];
+loans [label="loans\nid PK\nuser_code\ntool\nborrowed_at\nreturned_at\nsimulated_hardware"];
+events [label="events\nseq PK\ntime, machine, event\nprevious, current, source\naccepted, message"];
+state [label="state\nid PK (id=1)\nvalue JSON"];
+requests [label="requests\nid PK\npayload\nresult"];
+users -> loans [style=dashed, label="1 a muchos\nRelación lógica; sin FK declarada"];
+
+}

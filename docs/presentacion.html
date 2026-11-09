@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de préstamo de herramientas con autómatas y visión artificial</title>
+<style>
+  :root {
+    --bg1: #0b1026;
+    --bg2: #131a3a;
+    --accent: #4dd0e1;
+    --accent2: #8f7bff;
+    --text: #eef2ff;
+    --muted: #aab3d6;
+    --card: rgba(255, 255, 255, 0.06);
+    --card-border: rgba(255, 255, 255, 0.12);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: radial-gradient(1200px 800px at 80% -10%, #25306b 0%, var(--bg1) 55%),
+                radial-gradient(900px 600px at -10% 110%, #1b2350 0%, var(--bg2) 60%);
+    color: var(--text);
+  }
+
+  /* Fondo animado: nodos flotantes */
+  .bg-canvas { position: fixed; inset: 0; z-index: 0; opacity: 0.5; }
+
+  .deck { position: relative; z-index: 1; height: 100%; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: 6vh 8vw 10vh;
+    opacity: 0; visibility: hidden;
+    transform: translateX(60px) scale(0.985);
+    transition: opacity .55s ease, transform .55s ease, visibility .55s;
+    overflow-y: auto;
+  }
+  .slide.active { opacity: 1; visibility: visible; transform: none; }
+  .slide.behind { transform: translateX(-60px) scale(0.985); }
+
+  .kicker {
+    color: var(--accent);
+    letter-spacing: .25em;
+    text-transform: uppercase;
+    font-size: clamp(.65rem, 1.2vw, .85rem);
+    margin-bottom: 1rem;
+    font-weight: 600;
+  }
+  h1 {
+    font-size: clamp(1.7rem, 4.2vw, 3.4rem);
+    line-height: 1.15;
+    text-align: center;
+    max-width: 20ch;
+    background: linear-gradient(90deg, #fff, var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 1.6rem;
+  }
+  h2 {
+    font-size: clamp(1.4rem, 3.2vw, 2.4rem);
+    margin-bottom: 1.4rem;
+    text-align: center;
+    background: linear-gradient(90deg, #fff, var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .subtitle { color: var(--muted); font-size: clamp(.9rem, 1.6vw, 1.2rem); text-align: center; }
+  .authors { margin-top: 2.2rem; text-align: center; line-height: 1.9; }
+  .authors strong { color: var(--accent); font-weight: 600; }
+  .course {
+    margin-top: 1.2rem;
+    display: inline-block;
+    padding: .45rem 1.3rem;
+    border: 1px solid var(--card-border);
+    border-radius: 999px;
+    background: var(--card);
+    color: var(--muted);
+    font-size: clamp(.8rem, 1.4vw, 1rem);
+  }
+
+  .content { max-width: 1000px; width: 100%; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 1.1rem 1.4rem;
+    margin-bottom: .9rem;
+    backdrop-filter: blur(6px);
+  }
+  .card b, .card strong { color: var(--accent); }
+  .card p, .card li { font-size: clamp(.85rem, 1.5vw, 1.05rem); line-height: 1.55; color: var(--text); }
+  .card .label {
+    display: block;
+    color: var(--accent);
+    font-weight: 700;
+    font-size: clamp(.7rem, 1.1vw, .85rem);
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    margin-bottom: .35rem;
+  }
+  ul.clean { list-style: none; }
+  ul.clean li {
+    position: relative;
+    padding-left: 1.6rem;
+    margin-bottom: .7rem;
+  }
+  ul.clean li::before {
+    content: "▸";
+    position: absolute; left: 0;
+    color: var(--accent2);
+  }
+  ol.numbered { padding-left: 1.4rem; }
+  ol.numbered li { margin-bottom: .5rem; font-size: clamp(.8rem, 1.4vw, 1rem); line-height: 1.5; color: var(--text); }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; }
+  @media (max-width: 800px) { .grid2 { grid-template-columns: 1fr; } }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card);
+    border-radius: 12px;
+    overflow: hidden;
+    font-size: clamp(.75rem, 1.35vw, .98rem);
+  }
+  th, td { padding: .7rem .9rem; text-align: left; border-bottom: 1px solid var(--card-border); }
+  th { background: rgba(77, 208, 225, 0.15); color: var(--accent); text-transform: uppercase; letter-spacing: .08em; font-size: .8em; }
+  td.mark { text-align: center; color: var(--accent2); font-size: 1.1em; }
+
+  /* Animación de entrada escalonada */
+  .anim { opacity: 0; transform: translateY(22px); }
+  .slide.active .anim {
+    animation: rise .6s cubic-bezier(.2,.7,.3,1) forwards;
+    animation-delay: calc(var(--i, 0) * 120ms + 150ms);
+  }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+
+  /* Diagrama del autómata */
+  .automata { width: min(860px, 92vw); }
+  .automata .node circle {
+    fill: rgba(77,208,225,.12);
+    stroke: var(--accent);
+    stroke-width: 2;
+  }
+  .automata .node text { fill: var(--text); font-size: 13px; text-anchor: middle; }
+  .automata .edge { stroke: var(--muted); stroke-width: 1.6; fill: none; marker-end: url(#arrow); }
+  .automata .edge-label { fill: var(--muted); font-size: 11px; text-anchor: middle; }
+  .automata .pulse { animation: nodePulse 3.4s infinite; }
+  .automata .pulse.p1 { animation-delay: 0s; }
+  .automata .pulse.p2 { animation-delay: .7s; }
+  .automata .pulse.p3 { animation-delay: 1.4s; }
+  .automata .pulse.p4 { animation-delay: 2.1s; }
+  .automata .pulse.p5 { animation-delay: 2.8s; }
+  @keyframes nodePulse {
+    0%, 100% { filter: drop-shadow(0 0 0 rgba(77,208,225,0)); }
+    12% { filter: drop-shadow(0 0 12px rgba(77,208,225,.9)); }
+    30% { filter: drop-shadow(0 0 0 rgba(77,208,225,0)); }
+  }
+
+  /* Controles */
+  .hud {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+    display: flex; align-items: center; gap: 1rem;
+    padding: .8rem 1.4rem;
+    pointer-events: none;
+  }
+  .progress { flex: 1; height: 4px; background: rgba(255,255,255,.12); border-radius: 999px; overflow: hidden; }
+  .progress > div {
+    height: 100%; width: 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width .45s ease;
+  }
+  .counter { color: var(--muted); font-size: .85rem; min-width: 4.5ch; text-align: right; font-variant-numeric: tabular-nums; }
+  .nav {
+    position: fixed; top: 50%; transform: translateY(-50%);
+    z-index: 5;
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    border: 1px solid var(--card-border);
+    background: var(--card);
+    color: var(--text);
+    font-size: 1.2rem;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    transition: background .2s, transform .2s;
+  }
+  .nav:hover { background: rgba(77,208,225,.2); transform: translateY(-50%) scale(1.08); }
+  .nav.prev { left: 1.2rem; }
+  .nav.next { right: 1.2rem; }
+  .hint {
+    position: fixed; top: 1rem; right: 1.4rem; z-index: 5;
+    color: var(--muted); font-size: .75rem; letter-spacing: .08em;
+  }
+</style>
+</head>
+<body>
+<canvas class="bg-canvas" id="bg"></canvas>
+<div class="hint">← → para navegar</div>
+<div class="deck" id="deck">
+
+  <!-- 1. Portada -->
+  <section class="slide">
+    <div class="kicker anim" style="--i:0">Anteproyecto de trabajo de grado</div>
+    <h1 class="anim" style="--i:1">Sistema de préstamo de herramientas con autómatas y visión artificial</h1>
+    <div class="authors anim" style="--i:2">
+      <div><strong>Juan Diego Torres Molina</strong></div>
+      <div><strong>Johan Camilo Bonett Velasquez</strong></div>
+    </div>
+    <div class="anim" style="--i:3"><span class="course">Teoría de Computación · [Semestre 2026-2]</span></div>
+  </section>
+
+  <!-- 2. Portada inglés -->
+  <section class="slide">
+    <div class="kicker anim" style="--i:0">Degree project proposal</div>
+    <h1 class="anim" style="--i:1">Tool lending system based on finite automata and computer vision</h1>
+    <div class="authors anim" style="--i:2">
+      <div><strong>Juan Diego Torres Molina</strong></div>
+      <div><strong>Johan Camilo Bonett Velasquez</strong></div>
+    </div>
+    <div class="anim" style="--i:3"><span class="course">Computability Theory · [Academic term 2026-2]</span></div>
+  </section>
+
+  <!-- 3. Generalidades -->
+  <section class="slide">
+    <div class="content">
+      <h2 class="anim" style="--i:0">Generalidades del proyecto</h2>
+      <div class="card anim" style="--i:1"><span class="label">Resumen</span>
+        <p>Sistema de préstamo de herramientas para un laboratorio basado en <b>dos autómatas finitos</b>: uno administra el inventario y otro controla la operación física. Una cámara con un modelo <b>YOLO11n-cls</b> verifica visualmente la herramienta antes de autorizar cada transición, y <b>SQLite</b> conserva préstamos e historial. El prototipo se valida con un martillo, puerta y sensores simulados, portal web local y monitor sincronizado en tablet.</p>
+      </div>
+      <div class="card anim" style="--i:2"><span class="label">Palabras clave</span>
+        <p>Autómatas finitos · Visión artificial · Préstamo de herramientas · YOLO · Verificación visual</p>
+      </div>
+      <div class="card anim" style="--i:3"><span class="label">Abstract</span>
+        <p>A tool-lending system for a laboratory, built on two finite automata: one manages the inventory and the other controls the physical operation. A camera with a YOLO11n-cls classification model visually verifies the tool before authorizing each transition, while SQLite stores loans and history.</p>
+      </div>
+      <div class="card anim" style="--i:4"><span class="label">Keywords</span>
+        <p>Finite automata · Computer vision · Tool lending · YOLO · Visual verification</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Problema -->
+  <section class="slide">
+    <div class="content">
+      <h2 class="anim" style="--i:0">Research Problem</h2>
+      <div class="card anim" style="--i:1"><p>In a laboratory there is <b>no reliable record of who takes a tool</b>, simultaneous loans of the same unit are possible, and <b>returns are not verified</b>.</p></div>
+      <div class="card anim" style="--i:2"><p>Manual control depends on memory and trust, which leads to <b>losses and unavailable tools</b>.</p></div>
+      <div class="card anim" style="--i:3"><p><b>Research question:</b> how to guarantee that each loan and return is authorized, unique and visually verified, using a deterministic control model (finite automata) combined with real-time computer vision, before investing in the physical cabinet hardware?</p></div>
+    </div>
+  </section>
+
+  <!-- 5. Justificación -->
+  <section class="slide">
+    <div class="content">
+      <h2 class="anim" style="--i:0">Justificación</h2>
+      <div class="grid2">
+        <div class="card anim" style="--i:1"><span class="label">Técnica</span><p>Un AFD elimina ambigüedad en las transiciones; cada evento inválido se rechaza y se registra, y la verificación visual exige evidencia nueva tras cada operación.</p></div>
+        <div class="card anim" style="--i:2"><span class="label">Práctica</span><p>Reduce pérdidas y préstamos simultáneos sin vigilancia permanente; una restricción única en SQLite impide dos préstamos activos del mismo martillo.</p></div>
+        <div class="card anim" style="--i:3"><span class="label">Académica</span><p>Aplica de forma medible la teoría de autómatas y lenguajes regulares (AFD reconocedor de trazas válidas) junto con visión artificial en un caso real.</p></div>
+        <div class="card anim" style="--i:4"><span class="label">Económica</span><p>Funciona con hardware de bajo costo (computador + celular como cámara) y sin internet; la maqueta física solo se construye tras validar el software.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. Marco teórico -->
+  <section class="slide">
+    <div class="content" style="display:flex;flex-direction:column;align-items:center;gap:1rem;">
+      <h2 class="anim" style="--i:0">Marco Teórico o Conceptual</h2>
+      <svg class="automata anim" style="--i:1" viewBox="0 0 860 300" aria-label="Autómata del inventario">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#aab3d6"></path>
+          </marker>
+        </defs>
+        <g class="node pulse p1"><circle cx="110" cy="150" r="52"></circle><text x="110" y="147">Disponible</text><text x="110" y="163" font-size="10" fill="#aab3d6">q₀ · aceptación</text></g>
+        <g class="node pulse p2"><circle cx="320" cy="70" r="46"></circle><text x="320" y="74">Reservada</text></g>
+        <g class="node pulse p3"><circle cx="530" cy="150" r="46"></circle><text x="530" y="154">Prestada</text></g>
+        <g class="node pulse p4"><circle cx="740" cy="70" r="48"></circle><text x="740" y="74">En revisión</text></g>
+        <g class="node pulse p5"><circle cx="740" cy="230" r="52"></circle><text x="740" y="227">Fuera de</text><text x="740" y="243">servicio</text></g>
+        <path class="edge" d="M160,138 C210,100 240,86 274,78"></path>
+        <text class="edge-label" x="205" y="92">solicitud_verificada</text>
+        <path class="edge" d="M364,84 C410,105 450,125 486,138"></path>
+        <text class="edge-label" x="430" y="100">retiro_verificado</text>
+        <path class="edge" d="M318,116 C300,180 220,190 160,172"></path>
+        <text class="edge-label" x="225" y="196">cancelacion_verificada</text>
+        <path class="edge" d="M574,138 C620,110 660,92 694,80"></path>
+        <text class="edge-label" x="650" y="100">devolucion_verificada</text>
+        <path class="edge" d="M694,84 C560,190 300,220 162,168"></path>
+        <text class="edge-label" x="430" y="196">aprobacion</text>
+        <path class="edge" d="M740,118 L740,176"></path>
+        <text class="edge-label" x="768" y="150">dano</text>
+        <path class="edge" d="M712,205 C690,160 692,140 712,112"></path>
+        <text class="edge-label" x="668" y="160">reparacion</text>
+      </svg>
+      <div class="grid2" style="width:100%;">
+        <div class="card anim" style="--i:2"><p><b>AFD del inventario:</b> M = (Q, Σ, δ, q₀, F) con 5 estados y 7 símbolos; las trazas aceptadas terminan en Disponible (lenguaje regular de ciclos válidos).</p></div>
+        <div class="card anim" style="--i:3"><p><b>Visión artificial:</b> YOLO11n-cls con 5 clases (martillo, destornillador, alicate, vacío, otros); estabilidad con umbral 0,85, ≥ 5 observaciones y ≥ 2 s.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Marco contextual -->
+  <section class="slide">
+    <div class="content">
+      <h2 class="anim" style="--i:0">Marco Contextual</h2>
+      <div class="card anim" style="--i:1"><span class="label">Área de intervención</span><p>Laboratorio de herramientas de la institución <b>[nombre de la institución]</b>, donde estudiantes y docentes retiran herramientas menores.</p></div>
+      <div class="card anim" style="--i:2"><span class="label">Situación actual</span><p>El control es manual; no existe registro confiable de quién retira cada herramienta ni verificación de devoluciones.</p></div>
+      <div class="card anim" style="--i:3"><span class="label">Alcance del prototipo</span><p>Una unidad de martillo, escena controlada con cámara (celular o webcam), computador local como servidor y tablet como monitor de solo lectura.</p></div>
+      <div class="card anim" style="--i:4"><p style="color:var(--muted)">[Insertar mapa/localización del laboratorio y fotografía del contexto]</p></div>
+    </div>
+  </section>
+
+  <!-- 8. Marco normativo -->
+  <section class="slide">
+    <div class="content">
+      <h2 class="anim" style="--i:0">Marco Normativo</h2>
+      <ul class="clean">
+        <li class="card anim" style="--i:1"><p><b>Normas generales:</b> [reglamento interno del laboratorio; políticas de préstamo de equipos de la institución].</p></li>
+        <li class="card anim" style="--i:2"><p><b>Normas técnicas y sectoriales:</b> [RETIE si se incorpora electrónica de la puerta; NSR-10 si se construye la maqueta; seguridad eléctrica de baja tensión].</p></li>
+        <li class="card anim" style="--i:3"><p><b>Tratamiento de datos:</b> imágenes capturadas localmente, sin captura de rostros ni subida a servicios externos (minimización de datos personales).</p></li>
+        <li class="card anim" style="--i:4"><p><b>ODS:</b> ODS 4 (educación de calidad), ODS 9 (industria, innovación e infraestructura), ODS 12 (producción y consumo responsables).</p></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 9. Objetivos -->
+  <section class="slide">
+    <div class="content">
+      <h2 class="anim" style="--i:0">Objetivos</h2>
+      <div class="card anim" style="--i:1"><span class="label">Objetivo general</span>
+        <p>Diseñar e implementar un prototipo de sistema de préstamo de herramientas basado en <b>autómatas finitos y visión artificial</b>, que autorice, registre y verifique cada retiro y devolución en un laboratorio.</p>
+      </div>
+      <div class="card anim" style="--i:2"><span class="label">Objetivos específicos</span>
+        <ul class="clean">
+          <li>Modelar el inventario y la operación física como AFD con trazas de validación.</li>
+          <li>Implementar el controlador, la persistencia en SQLite y el portal web con monitor sincronizado.</li>
+          <li>Construir un dataset propio de cinco clases y ajustar YOLO11n-cls con evaluación documentada.</li>
+          <li>Validar el sistema con diez ciclos completos de préstamo/devolución con cámara real.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. Metodología -->
+  <section class="slide">
+    <div class="content">
+      <h2 class="anim" style="--i:0">Metodología</h2>
+      <div class="anim" style="--i:1">
+      <table>
+        <tr><th>Fase</th><th>Actividades</th><th>Productos</th></tr>
+        <tr><td><b>1. Modelado</b></td><td>Estados, alfabeto y transiciones; AFD reconocedor</td><td>Tablas de transición, app/automata.py</td></tr>
+        <tr><td><b>2. Implementación</b></td><td>Motor, persistencia, portal, monitor, simulador</td><td>Software funcional + 47 pruebas aprobadas</td></tr>
+        <tr><td><b>3. Visión</b></td><td>Dataset (100 imágenes/clase), entrenamiento, evaluación</td><td>models/herramientas.pt, matriz de confusión</td></tr>
+        <tr><td><b>4. Validación</b></td><td>Diez ciclos reales, latencia y exactitud</td><td>Informe de validación con datos reales</td></tr>
+        <tr><td><b>5. Documentación</b></td><td>Informe técnico y presentación</td><td>Documento de trabajo de grado</td></tr>
+      </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. Cronograma -->
+  <section class="slide">
+    <div class="content">
+      <h2 class="anim" style="--i:0">Cronograma</h2>
+      <div class="anim" style="--i:1">
+      <table>
+        <tr><th>Actividad</th><th>M1</th><th>M2</th><th>M3</th><th>M4</th><th>M5</th><th>M6</th></tr>
+        <tr><td>Modelado de autómatas</td><td class="mark">●</td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr><td>Implementación del prototipo</td><td class="mark">●</td><td class="mark">●</td><td></td><td></td><td></td><td></td></tr>
+        <tr><td>Dataset y entrenamiento</td><td></td><td></td><td class="mark">●</td><td class="mark">●</td><td></td><td></td></tr>
+        <tr><td>Validación con ciclos reales</td><td></td><td></td><td></td><td class="mark">●</td><td class="mark">●</td><td></td></tr>
+        <tr><td>Redacción y sustentación</td><td></td><td></td><td></td><td></td><td class="mark">●</td><td class="mark">●</td></tr>
+      </table>
+      </div>
+      <p class="anim" style="--i:2;color:var(--muted);margin-top:.8rem;font-size:.85rem;">[Ajustar meses según el calendario académico]</p>
+    </div>
+  </section>
+
+  <!-- 12. Resultados esperados -->
+  <section class="slide">
+    <div class="content">
+      <h2 class="anim" style="--i:0">Expected Results</h2>
+      <ul class="clean">
+        <li class="card anim" style="--i:1"><p>A working prototype that authorizes, records and verifies every loan and return, rejecting invalid events deterministically.</p></li>
+        <li class="card anim" style="--i:2"><p>A custom image dataset (five classes, ~100 images per class) and a fine-tuned YOLO11n-cls model with documented confusion matrix, accuracy and false positives.</p></li>
+        <li class="card anim" style="--i:3"><p>Measured results from ten complete loan/return cycles with the real camera, including latency and visual evidence.</p></li>
+        <li class="card anim" style="--i:4"><p>An academic validation of finite automata and regular languages applied to access control.</p></li>
+        <li class="card anim" style="--i:5"><p>A validated software base ready for the next milestone: the physical cabinet with real door and presence sensors.</p></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 13. Bibliografía -->
+  <section class="slide">
+    <div class="content">
+      <h2 class="anim" style="--i:0">Bibliografía</h2>
+      <div class="card anim" style="--i:1">
+      <ol class="numbered">
+        <li>Hopcroft, J. E., Motwani, R. y Ullman, J. D. (2007). <i>Introduction to Automata Theory, Languages, and Computation</i> (3.ª ed.). Pearson.</li>
+        <li>Sipser, M. (2013). <i>Introduction to the Theory of Computation</i> (3.ª ed.). Cengage Learning.</li>
+        <li>Redmon, J. y Farhadi, A. (2018). <i>YOLOv3: An Incremental Improvement</i>. arXiv:1804.02767.</li>
+        <li>Ultralytics (2024). <i>YOLO11 Documentation</i>. docs.ultralytics.com/models/yolo11/</li>
+        <li>Ultralytics (2024). <i>Image Classification Tasks</i>. docs.ultralytics.com/tasks/classify/</li>
+        <li>Ultralytics (2024). <i>Classification Datasets</i>. docs.ultralytics.com/datasets/classify/</li>
+        <li>Pallets Projects (2024). <i>Flask: Deploying with Waitress</i>. flask.palletsprojects.com</li>
+        <li>Jocher, G. et al. (2023). <i>Ultralytics YOLOv8</i>. Zenodo. doi.org/10.5281/zenodo.7347926</li>
+        <li>Dev47Apps (2024). <i>DroidCam User Guide</i>. droidcam.app/help/</li>
+        <li>Bradski, G. (2000). <i>The OpenCV Library</i>. Dr. Dobb's Journal of Software Tools.</li>
+      </ol>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<button class="nav prev" id="prev" aria-label="Anterior">‹</button>
+<button class="nav next" id="next" aria-label="Siguiente">›</button>
+<div class="hud">
+  <div class="progress"><div id="bar"></div></div>
+  <div class="counter" id="counter">1 / 13</div>
+</div>
+
+<script>
+(function () {
+  const slides = Array.from(document.querySelectorAll(".slide"));
+  const bar = document.getElementById("bar");
+  const counter = document.getElementById("counter");
+  let current = 0;
+
+  function show(n) {
+    current = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => {
+      s.classList.toggle("active", i === current);
+      s.classList.toggle("behind", i < current);
+    });
+    bar.style.width = ((current + 1) / slides.length * 100) + "%";
+    counter.textContent = (current + 1) + " / " + slides.length;
+    document.title = (current + 1) + "/" + slides.length + " · Presentación";
+  }
+
+  document.getElementById("next").addEventListener("click", () => show(current + 1));
+  document.getElementById("prev").addEventListener("click", () => show(current - 1));
+  document.addEventListener("keydown", (e) => {
+    if (["ArrowRight", "PageDown", " ", "Enter"].includes(e.key)) { e.preventDefault(); show(current + 1); }
+    if (["ArrowLeft", "PageUp", "Backspace"].includes(e.key)) { e.preventDefault(); show(current - 1); }
+    if (e.key === "Home") show(0);
+    if (e.key === "End") show(slides.length - 1);
+  });
+  let touchX = null;
+  document.addEventListener("touchstart", (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener("touchend", (e) => {
+    if (touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 60) show(current + (dx < 0 ? 1 : -1));
+    touchX = null;
+  }, { passive: true });
+  show(0);
+
+  // Fondo animado: nodos conectados (motivo de autómata)
+  const canvas = document.getElementById("bg");
+  const ctx = canvas.getContext("2d");
+  let nodes = [];
+  function resize() {
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
+    const count = Math.min(70, Math.floor(innerWidth * innerHeight / 22000));
+    nodes = Array.from({ length: count }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.35,
+      vy: (Math.random() - 0.5) * 0.35,
+      r: 1.4 + Math.random() * 2.2,
+    }));
+  }
+  addEventListener("resize", resize);
+  resize();
+  (function tick() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const n of nodes) {
+      n.x += n.vx; n.y += n.vy;
+      if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
+      if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(120,150,255,.35)";
+      ctx.fill();
+    }
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i], b = nodes[j];
+        const d = Math.hypot(a.x - b.x, a.y - b.y);
+        if (d < 130) {
+          ctx.strokeStyle = "rgba(77,208,225," + (0.14 * (1 - d / 130)) + ")";
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(tick);
+  })();
+})();
+</script>
+</body>
+</html>

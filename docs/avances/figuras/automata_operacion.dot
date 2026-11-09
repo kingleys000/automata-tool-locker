@@ -1,0 +1,23 @@
+digraph G {
+graph [rankdir=LR, bgcolor="white", pad=0.3, nodesep=0.4, ranksep=0.7];
+node [shape=box, style="rounded", fontname="DejaVu Sans", fontsize=12];
+edge [fontname="DejaVu Sans", fontsize=10];
+inicio [shape=point];
+inicio -> "Inactiva";
+"Inactiva" -> "Abriendo" [label="iniciar"];
+"Abriendo" -> "Esperando retiro" [label="abrir_retiro"];
+"Abriendo" -> "Esperando depósito" [label="abrir_deposito"];
+"Esperando retiro" -> "Cerrando" [label="solicitar_cierre"];
+"Esperando depósito" -> "Cerrando" [label="solicitar_cierre"];
+"Cerrando" -> "Verificando" [label="cierre_confirmado"];
+"Verificando" -> "Completada" [label="verificacion_correcta"];
+"Completada" -> "Inactiva" [label="finalizar"];
+"Abriendo" -> "Incidencia" [label="fallo"];
+"Esperando retiro" -> "Incidencia" [label="fallo"];
+"Esperando depósito" -> "Incidencia" [label="fallo"];
+"Cerrando" -> "Incidencia" [label="fallo"];
+"Verificando" -> "Incidencia" [label="fallo"];
+"Incidencia" -> "Abriendo" [label="reabrir"];
+"Incidencia" -> "Esperando retiro" [label="recuperar_retiro"];
+"Incidencia" -> "Esperando depósito" [label="recuperar_deposito"];
+}

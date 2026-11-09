@@ -1,0 +1,24 @@
+flowchart TD
+    Inicio(["Inicio: Usuario solicita préstamo"]) --> IngresoCodigo["Ingresar código de usuario (ej. 1001)"]
+    IngresoCodigo --> ValidarCondiciones{"¿Condiciones iniciales válidas?<br/>- Operación = Inactiva<br/>- Puerta cerrada y sensor conectado<br/>- Inventario = Disponible<br/>- Presencia simulada activada<br/>- Visión confirma 'martillo' (≥2s, conf ≥ 0.85)"}
+
+    ValidarCondiciones -- No --> Rechazo["Acción rechazada<br/>- Estado no muta<br/>- Se registra evento con accepted = 0<br/>- Mensaje explicativo al usuario"]
+    Rechazo --> FinRechazo(["Fin con rechazo"])
+
+    ValidarCondiciones -- Sí --> Reservar["Transición Inventario: Disponible → Reservada<br/>Transición Operación: Inactiva → Abriendo<br/>Modo = prestamo, Owner = usuario"]
+    Reservar --> OrdenAbrir["Enviar orden 'abrir' a hardware simulado"]
+    OrdenAbrir --> PuertaAbierta["Confirmar apertura de puerta (sensor simulado)<br/>Transición Operación: Abriendo → Esperando retiro"]
+    PuertaAbierta --> Retiro["Usuario retira físicamente el martillo<br/>Sensor simulado actualiza presencia = False"]
+    Retiro --> SolicitarCierre["Cerrar requiere presencia y visión estable compatibles<br/>Transición Operación: Esperando retiro → Cerrando"]
+    SolicitarCierre --> CierreConfirmado["Confirmar cierre de puerta (sensor simulado)<br/>Transición Operación: Cerrando → Verificando<br/>Se inicia ventana temporal verify_since"]
+
+    CierreConfirmado --> VerificacionVisual{"Verificación post-cierre:<br/>¿Presencia = False y cámara detecta<br/>'vacio' estable (≥2s)?"}
+
+    VerificacionVisual -- Sí --> RegistrarPrestamo["Transición Inventario: Reservada → Prestada<br/>Transición Operación: Verificando → Completada<br/>Insertar registro en SQLite 'loans' (returned_at = NULL)"]
+    RegistrarPrestamo --> Finalizar["Usuario presiona 'Finalizar'<br/>Transición Operación: Completada → Inactiva<br/>Modo = None, Owner = None"]
+    Finalizar --> FinPrestamo(["Fin: Préstamo activo registrado"])
+
+    VerificacionVisual -- Evidencia incorrecta estable o timeout --> Incidencia["Transición Operación: Verificando → Incidencia<br/>Alerta LED rojo intermitente<br/>Inventario permanece en Reservada<br/>No se crea registro en 'loans'"]
+    Incidencia --> Recuperacion["Encargado o usuario ejecuta 'Reintentar'<br/>Operación reabre o recupera espera para corregir"]
+    Recuperacion --> PuertaAbierta
+    VerificacionVisual -- "Sin evidencia concluyente y dentro del plazo" --> VerificacionVisual
